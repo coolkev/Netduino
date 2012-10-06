@@ -5,6 +5,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PomodoroTimer", "PomodoroTi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LedTest1", "LedTest1\LedTest1.csproj", "{6549250E-8D51-4F6F-A15D-DD33613A5EE6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TemperatureSample", "..\..\Users\Kevin\Documents\Microsoft .NET Micro Framework 4.2\Samples\TemperatureSample\TemperatureSample\TemperatureSample.csproj", "{78226182-FC91-43C9-97EA-38813787458E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DhtSensorApp", "..\..\Users\Kevin\Downloads\DhtSensorApp\DhtSensorApp.csproj", "{321C3DEA-7A40-4711-AF62-70B4AB15939C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MotorShield", "MotorShield\MotorShield.csproj", "{850B48EE-52D5-4344-8135-2015AFF52354}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -23,6 +29,22 @@ Global
 		{6549250E-8D51-4F6F-A15D-DD33613A5EE6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6549250E-8D51-4F6F-A15D-DD33613A5EE6}.Release|Any CPU.Build.0 = Release|Any CPU
 		{6549250E-8D51-4F6F-A15D-DD33613A5EE6}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{78226182-FC91-43C9-97EA-38813787458E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{78226182-FC91-43C9-97EA-38813787458E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{78226182-FC91-43C9-97EA-38813787458E}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{78226182-FC91-43C9-97EA-38813787458E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{78226182-FC91-43C9-97EA-38813787458E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{78226182-FC91-43C9-97EA-38813787458E}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{321C3DEA-7A40-4711-AF62-70B4AB15939C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{321C3DEA-7A40-4711-AF62-70B4AB15939C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{321C3DEA-7A40-4711-AF62-70B4AB15939C}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{321C3DEA-7A40-4711-AF62-70B4AB15939C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{321C3DEA-7A40-4711-AF62-70B4AB15939C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{321C3DEA-7A40-4711-AF62-70B4AB15939C}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{850B48EE-52D5-4344-8135-2015AFF52354}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{850B48EE-52D5-4344-8135-2015AFF52354}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{850B48EE-52D5-4344-8135-2015AFF52354}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{850B48EE-52D5-4344-8135-2015AFF52354}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
