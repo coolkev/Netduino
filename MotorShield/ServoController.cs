@@ -1,9 +1,8 @@
 using System;
-using Microsoft.SPOT;
 using Microsoft.SPOT.Hardware;
 using SecretLabs.NETMF.Hardware;
 
-namespace LedTest1
+namespace MotorShield
 {
     public class ServoController : IDisposable
     {
@@ -13,24 +12,26 @@ namespace LedTest1
         private readonly PWM _servo;
         private int _range;
 
-        public ServoController(Cpu.Pin pin, int minDuration, int maxDuration, uint period = 20000, int startPercent = 0)
+        public ServoController(Cpu.Pin pin, int minDuration, int maxDuration, uint period = 20000, int startDegree = 0)
         {
             _minDuration = minDuration;
             _maxDuration = maxDuration;
             _range = maxDuration - minDuration;
             _period = period;
             _servo = new PWM(pin);
+            _servo.SetDutyCycle(0);
 
-            if (startPercent>0)
-                Rotate(startPercent);
+            if (startDegree > 0)
+                Rotate(startDegree);
         }
 
-        public void Rotate(int percent)
+        public void Rotate(int degrees)
         {
-            if (percent<0 || percent>100)
+            if (degrees < 0 || degrees > 180)
                 throw new ArgumentException("percent");
 
-            var duration = (uint) (_minDuration + (_range/100) * percent);
+            var duration = (uint) (_minDuration + (_range/100) * (degrees/180*100));
+
             _servo.SetPulse(_period, duration);
         }
         public void Dispose()

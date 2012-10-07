@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Threading;
 using Microsoft.SPOT;
 using Microsoft.SPOT.Hardware;
@@ -12,19 +13,36 @@ namespace MotorShield
     {
         private static Mshield _myMotors;
         private static UltraSonicSensor _sensor;
-        private static Timer _timer;
-
+        //private static Timer _timer;
+        private static ServoController _servo1;
+        private static Thread _sonicThread;
+        private static Thread _servoThread;
         public static void Main()
         {
-            Debug.Print("Started...");
 
-            //var servo = new PWM(MyMotors.Servo1);
 
-            //servo.SetPulse(20000,700);
-            //MyMotors.MotorControl(Mshield.Motors.M4, (byte)100,true,10000);
+            _servo1 = new ServoController(Robot.Drivers.Adafruit.Mshield.Servo1, 600, 3000, startDegree: 90);
+            
+            while (Debugger.IsAttached)
+            {
 
-            //Thread.Sleep(1000);
-            _myMotors = new Mshield(Mshield.Drivers.Driver2);
+                var _servoPosition = 0;
+                while (Debugger.IsAttached)
+                {
+                    _servoPosition = _servoPosition == 0 ? 180 : 0;
+
+                    _servo1.Rotate(_servoPosition);
+
+                    Thread.Sleep(1000);
+                }
+            }
+
+
+        }
+        public static void Main2()
+        {
+            
+            _myMotors = new Mshield();
             
             var button = new InterruptPort(Pins.GPIO_PIN_D2, false, Port.ResistorMode.PullUp, Port.InterruptMode.InterruptEdgeHigh);
             button.OnInterrupt += (data1, data2, time) =>
@@ -37,8 +55,38 @@ namespace MotorShield
 
             _sensor = new UltraSonicSensor(Pins.GPIO_PIN_D0, Pins.GPIO_PIN_D1);
 
+            _servo1 = new ServoController(Robot.Drivers.Adafruit.Mshield.Servo1, 600, 3000,startDegree:90);
+
+            _servoThread = new Thread(new ThreadStart(ServoPatrol));
+            _servoThread.Start();
+
+            _sonicThread = new Thread(SonicPatrol);
+
+            if (Debugger.IsAttached)
+            {
+                while (Debugger.IsAttached) 
+                    Thread.Sleep(1000);
+
+            }
+            else 
+                Thread.Sleep(Timeout.Infinite);
+
+            _myMotors.Dispose();
+
             
-            Thread.Sleep(Timeout.Infinite);
+
+        }
+
+        private static void ServoPatrol()
+        {
+            var _servoPosition = 0;
+            while (Debugger.IsAttached)
+            {
+                _servoPosition = _servoPosition == 0 ? 180 : 0;
+
+                _servo1.Rotate(_servoPosition);
+
+            }
         }
 
 
@@ -47,7 +95,7 @@ namespace MotorShield
             Moving = true;
 
 
-            _timer = new Timer(StopIfClose, null, 0, 30);
+            //_timer = new Timer(StopIfClose, null, 0, 30);
             Debug.Print("StartMoving");
             _myMotors.MotorControl2(Mshield.Motors.M3, 70, false);
             _myMotors.MotorControl2(Mshield.Motors.M4, 70, false);
@@ -59,9 +107,9 @@ namespace MotorShield
         {
             Moving = false;
 
-            if (_timer != null)
-            _timer.Dispose();
-            _timer = null;
+            //if (_timer != null)
+            //_timer.Dispose();
+            //_timer = null;
             Debug.Print("StopMoving");
 
             _myMotors.MotorControl2(Mshield.Motors.M3, 0, false);
@@ -73,20 +121,29 @@ namespace MotorShield
 
 
         }
-        private static void StopIfClose(object state)
+        
+        private static void SonicPatrol()
         {
-            if (!Moving) return;
 
-            var distance = _sensor.TakeReading();
-            if (!Moving) return;
-            
-            Debug.Print("Distance = " + distance.ToString() + " mm.");
-
-            if (distance < 200)
+            while (true)
             {
-                StopMoving();
-            }
 
+                if (Moving)
+                {
+                    var distance = _sensor.TakeReading();
+
+                    Debug.Print("Distance = " + distance.ToString() + " mm.");
+
+                    if (Moving && distance < 200)
+                    {
+                        StopMoving();
+                    }
+                }
+
+                Thread.Sleep(60);
+
+            }
+            
         }
 
 

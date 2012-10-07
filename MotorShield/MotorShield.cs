@@ -29,22 +29,22 @@ namespace Robot.Drivers.Adafruit
 {
     public class Mshield : IDisposable
     {
-        public enum Drivers : byte { None = 0, Driver1, Driver2, Both }
+        //public enum Drivers : byte { None = 0, Driver1, Driver2, Both }
         public enum Motors : byte { M1 = 0, M2, M3, M4 }
-        public enum Steppers : byte { S1 = 0, S2 }
-        public enum BipolarStepping : byte { WaveDrive = 0, HiTorque, HalfStep }
+        //public enum Steppers : byte { S1 = 0, S2 }
+        //public enum BipolarStepping : byte { WaveDrive = 0, HiTorque, HalfStep }
 
         /// <summary>
         /// On board Servo1 connector, for external reference only
         /// </summary>
-        public Cpu.Pin Servo1 = Pins.GPIO_PIN_D9;
+        public const Cpu.Pin Servo1 = Pins.GPIO_PIN_D10;
         /// <summary>
         /// On board Servo2 connector, for external reference only
         /// </summary>
-        public Cpu.Pin Servo2 = Pins.GPIO_PIN_D10;
+        public const Cpu.Pin Servo2 = Pins.GPIO_PIN_D9;
 
-        private Drivers UsedDriver;
-        private OutputPort Motor1A, Motor1B; // Enable L293D driver #1a and #1b
+        //private Drivers UsedDriver;
+        //private OutputPort Motor1A, Motor1B; // Enable L293D driver #1a and #1b
         private PWM Motor2A, Motor2B; // Enable L293D driver #1a and #1b
         private OutputPort MotorLatch, MotorEnable, MotorClk, MotorData; // 74HCT595 commands
         byte latch_state; // Actual 74HCT595 output state
@@ -61,21 +61,21 @@ namespace Robot.Drivers.Adafruit
         /// Constructor
         /// </summary>
         /// <param name="driver"> Which driver to initialize : 1=driver 1, 2=driver 2, 3=both</param>
-        public Mshield(Drivers driver = Drivers.Both)
+        public Mshield()
         {
-            UsedDriver = driver;
-            if (driver == Drivers.Driver1 || driver == Drivers.Both)
-            {
-                Motor1A = new OutputPort(Pins.GPIO_PIN_D11, false);
-                Motor1B = new OutputPort(Pins.GPIO_PIN_D3, false);
-            }
-            if (driver == Drivers.Driver2 || driver == Drivers.Both)
-            {
+            //UsedDriver = driver;
+            //if (driver == Drivers.Driver1 || driver == Drivers.Both)
+            //{
+            //    Motor1A = new OutputPort(Pins.GPIO_PIN_D11, false);
+            //    Motor1B = new OutputPort(Pins.GPIO_PIN_D3, false);
+            //}
+            //if (driver == Drivers.Driver2 || driver == Drivers.Both)
+            //{
                 Motor2A = new PWM(Pins.GPIO_PIN_D5);
                 Motor2A.SetDutyCycle(0);
                 Motor2B = new PWM(Pins.GPIO_PIN_D6);
                 Motor2B.SetDutyCycle(0);
-            }
+            //}
             MotorLatch = new OutputPort(Pins.GPIO_PIN_D12, true);
             MotorEnable = new OutputPort(Pins.GPIO_PIN_D7, false);
             MotorClk = new OutputPort(Pins.GPIO_PIN_D4, true);
@@ -91,16 +91,16 @@ namespace Robot.Drivers.Adafruit
             latch_state = 0;
             latch_tx();
 
-            if (UsedDriver == Drivers.Driver1 || UsedDriver == Drivers.Both)
-            {
-                Motor1A.Dispose();
-                Motor1B.Dispose();
-            }
-            if (UsedDriver == Drivers.Driver2 || UsedDriver == Drivers.Both)
-            {
+            //if (UsedDriver == Drivers.Driver1 || UsedDriver == Drivers.Both)
+            //{
+            //    Motor1A.Dispose();
+            //    Motor1B.Dispose();
+            //}
+            //if (UsedDriver == Drivers.Driver2 || UsedDriver == Drivers.Both)
+            //{
                 Motor2A.Dispose();
                 Motor2B.Dispose();
-            }
+            //}
             MotorLatch.Dispose();
             MotorEnable.Dispose();
             MotorClk.Dispose();
