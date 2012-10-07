@@ -10,45 +10,87 @@ namespace MotorShield
 {
     public class Program
     {
+        private static Mshield _myMotors;
+        private static UltraSonicSensor _sensor;
+        private static Timer _timer;
 
         public static void Main()
         {
-            var MyMotors = new Mshield(Mshield.Drivers.Both);
+            Debug.Print("Started...");
 
             //var servo = new PWM(MyMotors.Servo1);
 
             //servo.SetPulse(20000,700);
             //MyMotors.MotorControl(Mshield.Motors.M4, (byte)100,true,10000);
-            MyMotors.MotorControl(Mshield.Motors.M1,1, true);
-            Thread.Sleep(1000);
 
-            MyMotors.MotorControl(Mshield.Motors.M1, 0, true);
+            //Thread.Sleep(1000);
+            _myMotors = new Mshield(Mshield.Drivers.Driver2);
+            
+            var button = new InterruptPort(Pins.GPIO_PIN_D2, false, Port.ResistorMode.PullUp, Port.InterruptMode.InterruptEdgeHigh);
+            button.OnInterrupt += (data1, data2, time) =>
+                {
+                    if (Moving)
+                        StopMoving();
+                    else
+                        StartMoving();
+                };
 
-            //var ledState = false;
-            //OutputPort led = new OutputPort(Pins.ONBOARD_LED, ledState);
+            _sensor = new UltraSonicSensor(Pins.GPIO_PIN_D0, Pins.GPIO_PIN_D1);
 
-            //while (true)
-            //{
-            //    ledState = !ledState;
-            //    led.Write(ledState);
-
-            //    // We have one motor connected on port M4 (Warning ! on some shields, M3 and M4 indications are reversed !)
-            //    // Increase its speed to its maximum. Direction change at each loop
-            //    for (int i = 0; i <= 255; i++, Thread.Sleep(20)) MyMotors.MotorControl(Mshield.Motors.M4, (byte)i, ledState);
-            //    // Then decrease it to zero
-            //    for (int i = 255; i >= 0; i--, Thread.Sleep(20)) MyMotors.MotorControl(Mshield.Motors.M4, (byte)i, ledState);
-            //    Thread.Sleep(1000);
-
-            //    // We have one stepper connected on driver1 (M1 + M2 ports)
-            //    // Have it run 5s in "Hi-Torque" (High power, high speed, high power usage...)
-            //    //MyMotors.StepperMove(Mshield.Steppers.S1, Mshield.BipolarStepping.HiTorque, 0, true, 0, 5000, false);
-            //    //Thread.Sleep(1000);
-
-            //    //// Then 5s in the other direction
-            //    //MyMotors.StepperMove(Mshield.Steppers.S1, Mshield.BipolarStepping.HiTorque, 0, false, 0, 5000, false);
-            //    //Thread.Sleep(1000);
-            //}
+            
+            Thread.Sleep(Timeout.Infinite);
         }
+
+
+        private static void StartMoving()
+        {
+            Moving = true;
+
+
+            _timer = new Timer(StopIfClose, null, 0, 30);
+            Debug.Print("StartMoving");
+            _myMotors.MotorControl2(Mshield.Motors.M3, 70, false);
+            _myMotors.MotorControl2(Mshield.Motors.M4, 70, false);
+        }
+
+        protected static bool Moving { get; set; }
+
+        private static void StopMoving()
+        {
+            Moving = false;
+
+            if (_timer != null)
+            _timer.Dispose();
+            _timer = null;
+            Debug.Print("StopMoving");
+
+            _myMotors.MotorControl2(Mshield.Motors.M3, 0, false);
+            _myMotors.MotorControl2(Mshield.Motors.M4, 0, false);
+
+
+            //_myMotors.Dispose();
+            //_myMotors = null;
+
+
+        }
+        private static void StopIfClose(object state)
+        {
+            if (!Moving) return;
+
+            var distance = _sensor.TakeReading();
+            if (!Moving) return;
+            
+            Debug.Print("Distance = " + distance.ToString() + " mm.");
+
+            if (distance < 200)
+            {
+                StopMoving();
+            }
+
+        }
+
+
+        
 
 
     }

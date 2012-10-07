@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Threading;
 using Microsoft.SPOT;
 using Microsoft.SPOT.Hardware;
@@ -6,54 +7,97 @@ using SecretLabs.NETMF.Hardware.NetduinoPlus;
 
 namespace MotorShield
 {
-    class UltraSonicSensor
+    class UltraSonicSensor : IDisposable
     {
 
-        private static int ticks;
 
-        private static InterruptPort EchoPin = new InterruptPort(Pins.GPIO_PIN_D10, true, Port.ResistorMode.Disabled, Port.InterruptMode.InterruptEdgeBoth);
-        private static OutputPort TriggerPin = new OutputPort(Pins.GPIO_PIN_D12, false);
+        //private static InterruptPort EchoPin = new InterruptPort(Pins.GPIO_PIN_D10, true, Port.ResistorMode.Disabled, Port.InterruptMode.InterruptEdgeBoth);
+        //private static OutputPort TriggerPin = new OutputPort(Pins.GPIO_PIN_D12, false);
 
-        public static void Main()
+       // private static bool Running = true;
+
+        private readonly InterruptPort _echoPin;
+        private readonly OutputPort _triggerPin;
+
+        public UltraSonicSensor(Cpu.Pin echoPin, Cpu.Pin triggerPin)
         {
-            EchoPin.OnInterrupt += new NativeEventHandler(port_OnInterrupt);
-            EchoPin.DisableInterrupt();
-            while (true)
-            {
-                Distance();
-                //Debug.Print("distance = " + myDistance + " mm.");
-                Thread.Sleep(1000);
-            }
+            _echoPin = new InterruptPort(echoPin, true, Port.ResistorMode.Disabled, Port.InterruptMode.InterruptEdgeBoth);
+            _triggerPin = new OutputPort(triggerPin, false);
+            
+            _echoPin.OnInterrupt += port_OnInterrupt;
+            _echoPin.DisableInterrupt();
         }
 
-        public static void Distance()
+
+
+        //public delegate void ReadingCallback(int millimeters);
+
+        //private ReadingCallback _callback;
+
+        //public int TakeReading()
+        //{
+        //    int result = 0;
+
+        //    var reset = new ManualResetEvent(false);
+        //    TakeReadingAsync(millimeters =>
+        //        {
+        //            result = millimeters;
+        //            reset.Set();
+        //        });
+
+        //    reset.WaitOne();
+
+        //    return result;
+        //}
+        private ManualResetEvent _reset;
+
+        public int TakeReading()
         {
-            EchoPin.EnableInterrupt();
-            TriggerPin.Write(false);
+
+            //_callback = callback;
+            _reset = new ManualResetEvent(false);
+            
+            _echoPin.EnableInterrupt();
+            _triggerPin.Write(false);
             Thread.Sleep(2);
-            TriggerPin.Write(true);
+            _triggerPin.Write(true);
             Thread.Sleep(10);
-            TriggerPin.Write(false);
+            _triggerPin.Write(false);
             Thread.Sleep(2);
+
+
+            _reset.WaitOne();
+            return _pulseWidthMm;
         }
 
-        private static void port_OnInterrupt(uint port, uint state, DateTime time)
+        private int _ticks;
+        private int _pulseWidthMm;
+
+        private void port_OnInterrupt(uint port, uint state, DateTime time)
         {
             if (state == 0) // falling edge, end of pulse
             {
-                int pulseWidth = (int)time.Ticks - ticks;
+                int pulseWidth = (int)time.Ticks - _ticks;
                 // valid for 20°C
                 //int pulseWidthMilliSeconds = pulseWidth * 10 / 582;
                 //valid for 24°C
-                int pulseWidthMilliSeconds = (int)(pulseWidth * 10 / 22.7673228346);
-                Debug.Print("Distance = " + pulseWidthMilliSeconds.ToString() + " in.");
+                _pulseWidthMm= (int)(pulseWidth /58);
+                //Debug.Print("Distance = " + pulseWidthMm.ToString() + " mm.");
+                //_callback(pulseWidthMm);
+                _reset.Set();
             }
             else
             {
-                ticks = (int)time.Ticks;
+                _ticks = (int)time.Ticks;
             }
-            EchoPin.ClearInterrupt();
+            _echoPin.ClearInterrupt();
         }
 
+        public void Dispose()
+        {
+            _echoPin.Dispose();
+            _triggerPin.Dispose();
+            
+        }
     }
 }

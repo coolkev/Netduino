@@ -9,7 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TemperatureSample", "..\..\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DhtSensorApp", "..\..\Users\Kevin\Downloads\DhtSensorApp\DhtSensorApp.csproj", "{321C3DEA-7A40-4711-AF62-70B4AB15939C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MotorShield", "MotorShield\MotorShield.csproj", "{850B48EE-52D5-4344-8135-2015AFF52354}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LittleTankie", "MotorShield\LittleTankie.csproj", "{850B48EE-52D5-4344-8135-2015AFF52354}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

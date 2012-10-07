@@ -50,12 +50,12 @@ namespace Robot.Drivers.Adafruit
         byte latch_state; // Actual 74HCT595 output state
 
         // Steper sequences for each stepper. Have a look here : http://www.stepperworld.com/Tutorials/pgBipolarTutorial.htm
-        private byte[][] BipolarSteppingWaveDrive = new byte[][] {  new byte [] {4,2,8,16},
-                                                                    new byte [] {1,128,64,32}};
-        private byte[][] BipolarSteppingHiTorque = new byte[][] {   new byte [] {20,24,10,6},
-                                                                    new byte [] {129,192,96,33}};
-        private byte[][] BipolarSteppingHalfStep = new byte[][] {   new byte [] {4,20,16,24,8,10,2,6},
-                                                                    new byte [] {1,129,128,192,64,96,32,33}};
+        //private byte[][] BipolarSteppingWaveDrive = new byte[][] {  new byte [] {4,2,8,16},
+        //                                                            new byte [] {1,128,64,32}};
+        //private byte[][] BipolarSteppingHiTorque = new byte[][] {   new byte [] {20,24,10,6},
+        //                                                            new byte [] {129,192,96,33}};
+        //private byte[][] BipolarSteppingHalfStep = new byte[][] {   new byte [] {4,20,16,24,8,10,2,6},
+        //                                                            new byte [] {1,129,128,192,64,96,32,33}};
 
         /// <summary>
         /// Constructor
@@ -67,7 +67,7 @@ namespace Robot.Drivers.Adafruit
             if (driver == Drivers.Driver1 || driver == Drivers.Both)
             {
                 Motor1A = new OutputPort(Pins.GPIO_PIN_D11, false);
-                Motor1B = new OutputPort(Pins.GPIO_PIN_D13, false);
+                Motor1B = new OutputPort(Pins.GPIO_PIN_D3, false);
             }
             if (driver == Drivers.Driver2 || driver == Drivers.Both)
             {
@@ -134,103 +134,133 @@ namespace Robot.Drivers.Adafruit
         /// <param name="msec">If non-zero, number of ms to run</param>
         /// <param name="hold">True if stepper shall stay energized when task done</param>
         /// <returns>Number of steps ran</returns>
-        public uint StepperMove(Steppers which, BipolarStepping mode, int speed, bool direction, int steps, int msec, bool hold = false)
+        //public uint StepperMove(Steppers which, BipolarStepping mode, int speed, bool direction, int steps, int msec, bool hold = false)
+        //{
+        //    byte[] MotorSteps = BipolarSteppingWaveDrive[(byte)which]; // Get the stepping pattern
+        //    if (mode == BipolarStepping.HiTorque) MotorSteps = BipolarSteppingHiTorque[(byte)which];
+        //    if (mode == BipolarStepping.HalfStep) MotorSteps = BipolarSteppingHalfStep[(byte)which];
+
+        //    // Find where we stopped last time
+        //    byte last;
+        //    int pos;
+        //    uint step = 0;
+        //    if (which == 0) last = (byte)(latch_state & 0x1E);
+        //    else last = (byte)(latch_state & 0xE1);
+        //    for (pos = 0; pos < MotorSteps.Length; pos++) if (MotorSteps[pos] == last) break;
+        //    if (pos == MotorSteps.Length) pos = 0;
+
+        //    if (which == 0) { Motor1A.Write(true); Motor1B.Write(true); }
+        //    else { Motor2A.SetDutyCycle(100); Motor2B.SetDutyCycle(100); }
+
+        //    byte Mask = (byte)((which == 0) ? 0xE1 : 0x1E);
+
+        //    if (steps > 0) // user chose to move from a number of steps
+        //    {
+        //        for (; step < steps; step++)
+        //        {
+        //            if (direction) pos = (pos + 1) % MotorSteps.Length;
+        //            else if (--pos < 0) pos = MotorSteps.Length - 1;
+        //            latch_state = (byte)((latch_state & Mask) | MotorSteps[pos]);
+        //            latch_tx();
+        //            if (speed > 0) Thread.Sleep(speed);
+        //        }
+
+        //    }
+        //    else // So no number of steps, the user must have given a time to run
+        //    {
+        //        long endtime = DateTime.Now.Ticks + msec * TimeSpan.TicksPerMillisecond;
+        //        for (; DateTime.Now.Ticks < endtime; step++)
+        //        {
+        //            if (direction) pos = (pos + 1) % MotorSteps.Length;
+        //            else if (--pos < 0) pos = MotorSteps.Length - 1;
+        //            latch_state = (byte)((latch_state & Mask) | MotorSteps[pos]);
+        //            latch_tx();
+        //            if (speed > 0) Thread.Sleep(speed);
+        //        }
+        //    }
+
+        //    if (!hold) // Remove energy from stepper
+        //    {
+        //        if (which == 0) { Motor1A.Write(false); Motor1B.Write(false); }
+        //        else { Motor2A.SetDutyCycle(0); Motor2B.SetDutyCycle(0); }
+        //    }
+
+        //    return step;
+        //}
+
+        ///// <summary>
+        ///// Control a motor; Non-blocking call. Set speed to 0 to stop.
+        ///// Frequency might need to be adjusted deppending on motor, or to match other PWMs
+        ///// </summary>
+        ///// <param name="which">Which motor to drive</param>
+        ///// <param name="speed">Steed, between 0 and 255 (0 to stop, 255 = max speed)</param>
+        ///// <param name="direction">True = foward, False = backward</param>
+        ///// <param name="freq">Frequency in Hz of the PWM controlling the motor</param>
+        //public void MotorControl(Motors which, byte speed, bool direction, int freq = 100)
+        //{
+        //    uint period = (uint)(1000000D / (double)freq);
+        //    switch (which)
+        //    {
+        //        case Motors.M1:
+        //            latch_state = (byte)((latch_state & 0xF3) | (direction ? 4 : 8));
+        //            latch_tx();
+        //            Motor1A.Write(speed > 0);
+        //            break;
+
+        //        case Motors.M2:
+        //            latch_state = (byte)((latch_state & 0xED) | (direction ? 2 : 16));
+        //            latch_tx();
+        //            Motor1B.Write(speed > 0);
+        //            break;
+        //        case Motors.M3: // This motor can have its speed controlled through PWM                  
+        //            if (speed == 0) Motor2A.SetDutyCycle(0);
+        //            else
+        //            {
+        //                latch_state = (byte)((latch_state & 0xBE) | (direction ? 1 : 64));
+        //                latch_tx();
+        //                Motor2A.SetPulse(period, (uint)(period * (double)speed / 255D));
+        //            }
+        //            break;
+        //        case Motors.M4: // This motor can have its speed controlled through PWM                  
+        //            if (speed == 0) Motor2B.SetDutyCycle(0);
+        //            else
+        //            {
+        //                latch_state = (byte)((latch_state & 0x5F) | (direction ? 32 : 128));
+        //                latch_tx();
+        //                Motor2B.SetPulse(period, (uint)(period * (double)speed / 255D));
+        //            }
+        //            break;
+        //    }
+        //}
+
+        public void MotorControl2(Motors which, uint speed, bool direction)
         {
-            byte[] MotorSteps = BipolarSteppingWaveDrive[(byte)which]; // Get the stepping pattern
-            if (mode == BipolarStepping.HiTorque) MotorSteps = BipolarSteppingHiTorque[(byte)which];
-            if (mode == BipolarStepping.HalfStep) MotorSteps = BipolarSteppingHalfStep[(byte)which];
+            if (speed>=100)
+                speed = 100;
 
-            // Find where we stopped last time
-            byte last;
-            int pos;
-            uint step = 0;
-            if (which == 0) last = (byte)(latch_state & 0x1E);
-            else last = (byte)(latch_state & 0xE1);
-            for (pos = 0; pos < MotorSteps.Length; pos++) if (MotorSteps[pos] == last) break;
-            if (pos == MotorSteps.Length) pos = 0;
-
-            if (which == 0) { Motor1A.Write(true); Motor1B.Write(true); }
-            else { Motor2A.SetDutyCycle(100); Motor2B.SetDutyCycle(100); }
-
-            byte Mask = (byte)((which == 0) ? 0xE1 : 0x1E);
-
-            if (steps > 0) // user chose to move from a number of steps
-            {
-                for (; step < steps; step++)
-                {
-                    if (direction) pos = (pos + 1) % MotorSteps.Length;
-                    else if (--pos < 0) pos = MotorSteps.Length - 1;
-                    latch_state = (byte)((latch_state & Mask) | MotorSteps[pos]);
-                    latch_tx();
-                    if (speed > 0) Thread.Sleep(speed);
-                }
-
-            }
-            else // So no number of steps, the user must have given a time to run
-            {
-                long endtime = DateTime.Now.Ticks + msec * TimeSpan.TicksPerMillisecond;
-                for (; DateTime.Now.Ticks < endtime; step++)
-                {
-                    if (direction) pos = (pos + 1) % MotorSteps.Length;
-                    else if (--pos < 0) pos = MotorSteps.Length - 1;
-                    latch_state = (byte)((latch_state & Mask) | MotorSteps[pos]);
-                    latch_tx();
-                    if (speed > 0) Thread.Sleep(speed);
-                }
-            }
-
-            if (!hold) // Remove energy from stepper
-            {
-                if (which == 0) { Motor1A.Write(false); Motor1B.Write(false); }
-                else { Motor2A.SetDutyCycle(0); Motor2B.SetDutyCycle(0); }
-            }
-
-            return step;
-        }
-
-        /// <summary>
-        /// Control a motor; Non-blocking call. Set speed to 0 to stop.
-        /// Frequency might need to be adjusted deppending on motor, or to match other PWMs
-        /// </summary>
-        /// <param name="which">Which motor to drive</param>
-        /// <param name="speed">Steed, between 0 and 255 (0 to stop, 255 = max speed)</param>
-        /// <param name="direction">True = foward, False = backward</param>
-        /// <param name="freq">Frequency in Hz of the PWM controlling the motor</param>
-        public void MotorControl(Motors which, byte speed, bool direction, int freq = 100)
-        {
-            uint period = (uint)(1000000000D / (double)freq);
             switch (which)
             {
-                case Motors.M1:
-                    latch_state = (byte)((latch_state & 0xF3) | (direction ? 4 : 8));
-                    latch_tx();
-                    Motor1A.Write(speed > 0);
-                    break;
-
-                case Motors.M2:
-                    latch_state = (byte)((latch_state & 0xED) | (direction ? 2 : 16));
-                    latch_tx();
-                    Motor1B.Write(speed > 0);
-                    break;
                 case Motors.M3: // This motor can have its speed controlled through PWM                  
                     if (speed == 0) Motor2A.SetDutyCycle(0);
                     else
                     {
-                        latch_state = (byte)((latch_state & 0xBE) | (direction ? 1 : 64));
+                        latch_state = (byte) ((latch_state & 0xBE) | (direction ? 1 : 64));
                         latch_tx();
-                        Motor2A.SetPulse(period, (uint)(period * (double)speed / 255D));
+                        Motor2A.SetDutyCycle(speed);
                     }
                     break;
                 case Motors.M4: // This motor can have its speed controlled through PWM                  
                     if (speed == 0) Motor2B.SetDutyCycle(0);
                     else
                     {
-                        latch_state = (byte)((latch_state & 0x5F) | (direction ? 32 : 128));
+                        latch_state = (byte) ((latch_state & 0x5F) | (direction ? 32 : 128));
                         latch_tx();
-                        Motor2B.SetPulse(period, (uint)(period * (double)speed / 255D));
+                        Motor2B.SetDutyCycle(speed);
+
                     }
                     break;
-            }
+            
+        }
         }
     }
 }
