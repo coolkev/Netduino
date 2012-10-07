@@ -233,9 +233,37 @@ namespace Robot.Drivers.Adafruit
         //    }
         //}
 
-        public void MotorControl2(Motors which, uint speed, bool direction)
+        public void BothMotors(int motor3Speed, int motor4Speed)
         {
-            if (speed>=100)
+            if (motor3Speed==0)
+                Motor2A.SetDutyCycle(0);
+            if (motor4Speed==0)
+                Motor2A.SetDutyCycle(0);
+
+            var motor3Dir = motor3Speed < 0;
+            var motor4Dir = motor4Speed < 0;
+
+             //var motor3latch_state = (byte) ((latch_state & 0xBE) | (motor3Dir ? 1 : 64));
+
+             //var motor4latch_state = (byte) ((latch_state & 0x5F) | (motor4Dir ? 32 : 128));
+
+
+             //latch_state = (byte) (motor3latch_state & motor4latch_state);
+
+            latch_state = (byte)((latch_state & 0xBE) | (motor3Dir ? 1 : 64));
+            latch_tx();
+            Motor2A.SetDutyCycle((uint) Math.Abs(motor3Speed));
+
+            latch_state = (byte)((latch_state & 0x5F) | (motor4Dir ? 32 : 128));
+            latch_tx();
+            
+            Motor2B.SetDutyCycle((uint) Math.Abs(motor4Speed));
+
+        }
+
+        public void MotorControl(Motors which, uint speed, bool direction)
+        {
+            if (speed >= 100)
                 speed = 100;
 
             switch (which)
@@ -259,8 +287,8 @@ namespace Robot.Drivers.Adafruit
 
                     }
                     break;
-            
-        }
+
+            }
         }
     }
 }
