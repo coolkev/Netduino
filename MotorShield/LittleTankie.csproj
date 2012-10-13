@@ -33,6 +33,7 @@
   </PropertyGroup>
   <Import Project="$(NetMfTargetsBaseDir)$(TargetFrameworkVersion)\CSharp.Targets" />
   <ItemGroup>
+    <Compile Include="Accelerometer.cs" />
     <Compile Include="FindButton.cs" />
     <Compile Include="MotorShield.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

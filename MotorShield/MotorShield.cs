@@ -240,8 +240,8 @@ namespace Robot.Drivers.Adafruit
             if (motor4Speed==0)
                 Motor2A.SetDutyCycle(0);
 
-            var motor3Dir = motor3Speed < 0;
-            var motor4Dir = motor4Speed < 0;
+            var motor3Dir = motor3Speed > 0;
+            var motor4Dir = motor4Speed > 0;
 
              //var motor3latch_state = (byte) ((latch_state & 0xBE) | (motor3Dir ? 1 : 64));
 

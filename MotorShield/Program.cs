@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Diagnostics;
 using System.Threading;
 using Microsoft.SPOT;
@@ -25,15 +26,93 @@ namespace MotorShield
         public static void Main()
         {
 
+
+            TestAccelerometer();
+            //var _ultrasensor = new UltraSonicSensor(Pins.GPIO_PIN_D0, Pins.GPIO_PIN_D1);
+
+            //var debugMode = Debugger.IsAttached;
+
+            //while (!debugMode || Debugger.IsAttached)
+            //{
+
+            //    var distance = _ultrasensor.TakeReading();
+            //    Debug.Print(distance.ToString());
+            //    Thread.Sleep(100);
+
+            //}
             using (var robot = new TankRobot())
             {
 
-                robot.Run();
-                //robot.Rotate(180);
+                //var timer = new Timer(new TimerCallback( state =>
+                //    {
+                //        var distance = robot.TakeReading();
+                //        Debug.Print(distance.ToString());
+                //    }));
 
+                //robot.Rotate(TankRobot.RotateDirection.Left, 360,70);
+
+                //robot.Forward(200,100);
+                //robot.Run();
+                //for (var x = 0; x < 36; x++)
+                //{
+                //    robot.Rotate(TankRobot.RotateDirection.Left, 10, 75);
+                //    var distance = robot.TakeReading();
+                //    Debug.Print(distance.ToString());
+                //}
+                //for (var x = 0; x < 36; x++)
+                //{
+                //    robot.Rotate(TankRobot.RotateDirection.Right, 10, 75);
+                //    var distance = robot.TakeReading();
+                //    Debug.Print(distance.ToString());
+                //}
 
             }
 
+        }
+
+        private static void TestAccelerometer()
+        {
+            
+            
+            const int readings = 10;
+
+            Accelerometer.Precision = 2;
+            using (var accel = new Accelerometer(Pins.GPIO_PIN_A2))
+            {
+
+                accel.xAxis = new Accelerometer.Axis(Pins.GPIO_PIN_A0, Cpu.AnalogChannel.ANALOG_0,
+                                                     Accelerometer.xAxisVoltage);
+                accel.zAxis = new Accelerometer.Axis(Pins.GPIO_PIN_A1, Cpu.AnalogChannel.ANALOG_1,
+                                                     Accelerometer.zAxisVoltage);
+
+                var q = new Queue();
+                double total = 0;
+
+                // Keep application alive via loop
+                while (Debugger.IsAttached)
+                {
+
+                    while (q.Count < readings)
+                    {
+                        var reading = accel.Read();
+                        var value = reading.Z;
+
+                        q.Enqueue(value);
+                        total += value;
+
+                    }
+                    var avg = total/readings;
+
+                    total -= (double) q.Dequeue();
+
+                    var rotation = ((avg + 90)/180)*100;
+                    //var adjusted = 1000 + (int)rotation;
+
+                    Debug.Print("avg=" + avg + ", rotation=" + rotation);
+
+
+                }
+            }
         }
 
         //public static void Main()

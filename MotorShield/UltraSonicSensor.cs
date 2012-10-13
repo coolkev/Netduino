@@ -53,6 +53,7 @@ namespace MotorShield
 
         public int TakeReading()
         {
+            _pulseWidthMm = 0;
 
             //_callback = callback;
             _reset = new ManualResetEvent(false);
@@ -66,7 +67,8 @@ namespace MotorShield
             Thread.Sleep(2);
 
 
-            _reset.WaitOne();
+            _reset.WaitOne(500,false);
+
             return _pulseWidthMm;
         }
 

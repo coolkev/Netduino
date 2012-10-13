@@ -44,11 +44,13 @@ namespace MotorShield
         //private static Timer _timer;
         private readonly ServoController _servo1;
 
-        private int _leftMotorSpeed;
-        private int _rightMotorSpeed;
+        //private int _leftMotorSpeed;
+        //private int _rightMotorSpeed;
 
         private readonly DistanceHistory _distanceHistory = new DistanceHistory();
         private readonly InterruptPort _onOffButton;
+        private bool _doFunStuff;
+        private bool _stopFunStuff;
 
         public TankRobot()
         {
@@ -74,188 +76,331 @@ namespace MotorShield
             while (!debugMode || Debugger.IsAttached)
             {
 
-                if (Moving)
+                if (_doFunStuff)
                 {
-                    int newPosition;
+                    _doFunStuff = false;
+                    DoFunStuff();
+                }
 
-                    if (_servo1.Position == 90)
+
+                Thread.Sleep(100);
+            }
+
+        }
+
+        public enum RotateDirection
+        {
+            Left,
+            Right
+        }
+        private void DoFunStuff()
+        {
+            //var rand = (new Random()).Next(1);
+            while (!_stopFunStuff)
+            {
+
+                //var direction = rand == 0 ? RotateDirection.Left : RotateDirection.Right;
+                int distance = 0;
+
+                int maxDistance = 0;
+                int maxDistanceDegrees = 0;
+                for (var x = 0; x < 12; x++)
+                {
+                    var degrees = 30*x;
+                    distance = _ultrasensor.TakeReading();
+
+                    //var reading = new DistanceReading() { Degrees = degrees, Distance = distance, Time = DateTime.Now };
+                    //_distanceHistory.Add(reading);
+
+                    //if (distance == 0)
+                    //{
+                    //Debugger.Break();
+                    //}
+                    if (distance > maxDistance)
                     {
-                        newPosition = prevPosition == 0 ? 180 : 0;
-                    }
-                    else
-                    {
-                        prevPosition = _servo1.Position;
-                        newPosition = 90;
+                        maxDistance = distance;
+                        maxDistanceDegrees = degrees;
                     }
 
-                    _servo1.Rotate(newPosition);
+                    Rotate(RotateDirection.Left, 30);
+                    //Stop();
+                    Thread.Sleep(200);
 
-                    Thread.Sleep(500);
+                    if (_stopFunStuff) return;
+                }
 
-                    var distance = _ultrasensor.TakeReading();
+                Thread.Sleep(1000);
 
-                    var reading = new DistanceReading() {Degrees = newPosition, Distance = distance, Time = DateTime.Now};
-                    _distanceHistory.Add(reading);
 
-                    if (Moving)
-                    {
+                if (maxDistanceDegrees > 0)
+                {
+                    Rotate(RotateDirection.Right, (uint) (360 - maxDistanceDegrees));
 
-                        if (newPosition == 90)
-                        {
-                            if (reading.Feet < 1)
-                            {
-                                BothMotorSpeed = 0;
-
-                                Thread.Sleep(1000);
-
-                                Rotate(90);
-
-                                distance = _ultrasensor.TakeReading();
-
-                                reading = new DistanceReading() {Degrees = newPosition, Distance = distance, Time = DateTime.Now};
-                                _distanceHistory.Add(reading);
-
-                                //if more than 5 feet just go this way. otherwise turn 90 more
-                                if (reading.Feet < 5)
-                                {
-
-                                    Thread.Sleep(1000);
-
-                                    Rotate(90);
-
-                                    var lastReading = reading;
-
-                                    distance = _ultrasensor.TakeReading();
-
-                                    reading = new DistanceReading() {Degrees = newPosition, Distance = distance, Time = DateTime.Now};
-                                    _distanceHistory.Add(reading);
-
-                                    if (reading.Distance < lastReading.Distance)
-                                    {
-                                        Thread.Sleep(1000);
-
-                                        Rotate(-90);
-
-                                        distance = _ultrasensor.TakeReading();
-
-                                        reading = new DistanceReading() {Degrees = newPosition, Distance = distance, Time = DateTime.Now};
-                                        _distanceHistory.Add(reading);
-
-                                    }
-                                }
-
-                                if (reading.Feet > 1)
-                                {
-                                    BothMotorSpeed = 70;
-                                }
-
-                            }
-                            else if (reading.Feet < 5)
-                            {
-                                BothMotorSpeed = 70;
-                            }
-                            else if (reading.Feet > 5)
-                            {
-                                BothMotorSpeed = 85;
-                            }
-                        }
-                    }
+                    Thread.Sleep(1000);
 
                 }
-                else
+
+                Forward(100);
+
+                while (distance > 200)
                 {
-                    Thread.Sleep(500);
+
+                    distance = _ultrasensor.TakeReading();
+
+                    Thread.Sleep(50);
+                    if (_stopFunStuff) return;
+
                 }
+                Stop();
+
+                Thread.Sleep(1000);
+
+                distance = _ultrasensor.TakeReading();
+
+                if (distance < 100)
+                    ReverseAndStop(1000);
+
+                Thread.Sleep(1000);
+                
+                //Stop();
+                //Forward(1000);
+                //Stop();
+            }
+        }
+
+        private void ReverseAndStop(int duration, int speed = 100)
+        {
+            Moving = true;
+
+            _myMotors.BothMotors(-speed, -speed);
+
+            Thread.Sleep(duration);
+
+            Stop();
+        }
+
+        public void Forward(int speed = 100)
+        {
+            Moving = true;
+
+            _myMotors.BothMotors(speed, speed);
+        }
+        
+        public void ForwardAndStop(int duration, int speed = 100)
+        {
+            Moving = true;
+            _myMotors.BothMotors(speed, speed);
+
+            Thread.Sleep(duration);
+
+            Stop();
+        }
+
+        //public void Run()
+        //{
+        //    var prevPosition = 0;
+
+        //    var debugMode = Debugger.IsAttached;
+
+        //    while (!debugMode || Debugger.IsAttached)
+        //    {
+
+        //        if (Moving)
+        //        {
+        //            int newPosition;
+
+        //            if (_servo1.Position == 90)
+        //            {
+        //                newPosition = prevPosition == 0 ? 180 : 0;
+        //            }
+        //            else
+        //            {
+        //                prevPosition = _servo1.Position;
+        //                newPosition = 90;
+        //            }
+
+        //            _servo1.Rotate(newPosition);
+
+        //            Thread.Sleep(500);
+
+        //            var distance = _ultrasensor.TakeReading();
+
+        //            var reading = new DistanceReading() {Degrees = newPosition, Distance = distance, Time = DateTime.Now};
+        //            _distanceHistory.Add(reading);
+
+        //            if (Moving)
+        //            {
+
+        //                if (newPosition == 90)
+        //                {
+        //                    if (reading.Feet < 1)
+        //                    {
+        //                        BothMotorSpeed = 0;
+
+        //                        Thread.Sleep(1000);
+
+        //                        Rotate(90);
+
+        //                        distance = _ultrasensor.TakeReading();
+
+        //                        reading = new DistanceReading() {Degrees = newPosition, Distance = distance, Time = DateTime.Now};
+        //                        _distanceHistory.Add(reading);
+
+        //                        //if more than 5 feet just go this way. otherwise turn 90 more
+        //                        if (reading.Feet < 5)
+        //                        {
+
+        //                            Thread.Sleep(1000);
+
+        //                            Rotate(90);
+
+        //                            var lastReading = reading;
+
+        //                            distance = _ultrasensor.TakeReading();
+
+        //                            reading = new DistanceReading() {Degrees = newPosition, Distance = distance, Time = DateTime.Now};
+        //                            _distanceHistory.Add(reading);
+
+        //                            if (reading.Distance < lastReading.Distance)
+        //                            {
+        //                                Thread.Sleep(1000);
+
+        //                                Rotate(-90);
+
+        //                                distance = _ultrasensor.TakeReading();
+
+        //                                reading = new DistanceReading() {Degrees = newPosition, Distance = distance, Time = DateTime.Now};
+        //                                _distanceHistory.Add(reading);
+
+        //                            }
+        //                        }
+
+        //                        if (reading.Feet > 1)
+        //                        {
+        //                            BothMotorSpeed = 70;
+        //                        }
+
+        //                    }
+        //                    else if (reading.Feet < 5)
+        //                    {
+        //                        BothMotorSpeed = 70;
+        //                    }
+        //                    else if (reading.Feet > 5)
+        //                    {
+        //                        BothMotorSpeed = 85;
+        //                    }
+        //                }
+        //            }
+
+        //        }
+        //        else
+        //        {
+        //            Thread.Sleep(500);
+        //        }
                 
 
-            }
+        //    }
 
-        }
+        //}
 
-        protected int BothMotorSpeed
-        {
-            set
-            {
-                _leftMotorSpeed = value;
-                _rightMotorSpeed = value;
-                _myMotors.BothMotors(value,value);
-            }
-        }
+        //protected int BothMotorSpeed
+        //{
+        //    set
+        //    {
+        //        _leftMotorSpeed = value;
+        //        _rightMotorSpeed = value;
+        //        _myMotors.BothMotors(value,value);
+        //    }
+        //}
 
-        private bool Moving
-        {
-            get { return LeftMotorSpeed != 0 || RightMotorSpeed != 0; }
-        }
+        private bool Moving;
 
         private void OnOffButton(uint data1, uint data2, DateTime time)
         {
 
             if (Moving)
             {
-                BothMotorSpeed = 0;
+                _stopFunStuff = true;
+
+                Stop();
             }
             else
             {
-                BothMotorSpeed = 70;
+                _stopFunStuff = false;
+                _doFunStuff = true;
+                //BothMotorSpeed = 70;
             }
         }
 
-        protected int LeftMotorSpeed
+        public void Stop()
         {
-            get { return _leftMotorSpeed; }
-            set
-            {
-                if (_leftMotorSpeed != value)
-                {
-                    _leftMotorSpeed = value;
-                    _myMotors.MotorControl(Mshield.Motors.M4, (uint) value, value < 0);
-                }
-            }
+            _myMotors.BothMotors(0, 0);
+            Moving = false;
         }
 
-        protected int RightMotorSpeed
+        //protected int LeftMotorSpeed
+        //{
+        //    get { return _leftMotorSpeed; }
+        //    set
+        //    {
+        //        if (_leftMotorSpeed != value)
+        //        {
+        //            _leftMotorSpeed = value;
+        //            _myMotors.MotorControl(Mshield.Motors.M4, (uint) value, value < 0);
+        //        }
+        //    }
+        //}
+
+        //protected int RightMotorSpeed
+        //{
+        //    get { return _rightMotorSpeed; }
+        //    set
+        //    {
+        //        if (_rightMotorSpeed != value)
+        //        {
+        //            _rightMotorSpeed = value;
+        //            _myMotors.MotorControl(Mshield.Motors.M3, (uint) value, value < 0);
+        //        }
+        //    }
+        //}
+
+        private const int DefaultRotateSpeed = 100;
+        public int RotateDuration360 = 2800; 
+        public void Rotate(RotateDirection rotateDirection, uint degrees, int speed = DefaultRotateSpeed)
         {
-            get { return _rightMotorSpeed; }
-            set
-            {
-                if (_rightMotorSpeed != value)
-                {
-                    _rightMotorSpeed = value;
-                    _myMotors.MotorControl(Mshield.Motors.M3, (uint) value, value < 0);
-                }
-            }
-        }
 
+            //var leftSpeed = LeftMotorSpeed;
+            //var rightSpeed = RightMotorSpeed;
 
-        public void Rotate(int degrees)
-        {
+            var direction = rotateDirection== RotateDirection.Left ? 1 : -1;
 
-            var leftSpeed = LeftMotorSpeed;
-            var rightSpeed = RightMotorSpeed;
-
-            var direction = degrees > 0 ? 1 : -1;
-
+            Moving = true;
             //LeftMotorSpeed = 67;
             //RightMotorSpeed = -67;
-            _myMotors.BothMotors(direction * 70, -direction * 70);
+            _myMotors.BothMotors(direction * speed, -direction * speed);
             //depends on degrees
 
-            var duration = System.Math.Abs(degrees)/90d*800d;
+            var duration = degrees/360d*RotateDuration360;
             Thread.Sleep((int)duration);
 
-            _myMotors.BothMotors(leftSpeed, rightSpeed);
-
+            //_myMotors.BothMotors(leftSpeed, rightSpeed);
+            Stop();
             
         }
         public void Dispose()
         {
-            LeftMotorSpeed = 0;
-            RightMotorSpeed = 0;
+            //LeftMotorSpeed = 0;
+            //RightMotorSpeed = 0;
 
             _myMotors.Dispose();
             _servo1.Dispose();
             _ultrasensor.Dispose();
 
+        }
+
+        public int TakeReading()
+        {
+            return _ultrasensor.TakeReading();
         }
     }
 }
