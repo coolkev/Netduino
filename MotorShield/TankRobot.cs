@@ -42,7 +42,7 @@ namespace MotorShield
         private readonly Mshield _myMotors;
         private readonly UltraSonicSensor _ultrasensor;
         //private static Timer _timer;
-        private readonly ServoController _servo1;
+        //private readonly ServoController _servo1;
 
         //private int _leftMotorSpeed;
         //private int _rightMotorSpeed;
@@ -59,7 +59,7 @@ namespace MotorShield
 
             _ultrasensor = new UltraSonicSensor(Pins.GPIO_PIN_D0, Pins.GPIO_PIN_D1);
 
-            _servo1 = new ServoController(Mshield.Servo1, 600, 2400, startDegree: 90);
+            //_servo1 = new ServoController(Mshield.Servo1, 600, 2400, startDegree: 90);
 
             _myMotors = new Mshield();
             
@@ -393,7 +393,7 @@ namespace MotorShield
             //RightMotorSpeed = 0;
 
             _myMotors.Dispose();
-            _servo1.Dispose();
+            //_servo1.Dispose();
             _ultrasensor.Dispose();
 
         }
@@ -401,6 +401,36 @@ namespace MotorShield
         public int TakeReading()
         {
             return _ultrasensor.TakeReading();
+        }
+        /// <summary>
+        /// Move left, right motors based on a scale of -100 to 100
+        /// </summary>
+        /// <param name="leftSpeed"></param>
+        /// <param name="rightSpeed"></param>
+        public void Move(int leftSpeed, int rightSpeed)
+        {
+
+            var leftAdjusted = 0;
+            var rightAdjusted = 0;
+
+            var left =  (int) (30*(leftSpeed/100f));
+            
+            if (leftSpeed > 0)
+                leftAdjusted = 70 + left;
+            else if (leftSpeed < 0)
+                leftAdjusted = -70 + left;
+
+            var right = (int)(30 * (rightSpeed / 100f));
+
+            if (rightSpeed > 0)
+                rightAdjusted = 70 + right;
+            else if (rightSpeed < 0)
+                rightAdjusted = -70 + right;
+
+
+            _myMotors.BothMotors(rightAdjusted, leftAdjusted);
+
+
         }
     }
 }

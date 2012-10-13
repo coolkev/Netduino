@@ -41,6 +41,8 @@
     <Compile Include="TankRobot.cs" />
     <Compile Include="ServoController.cs" />
     <Compile Include="UltraSonicSensor.cs" />
+    <Compile Include="WiiChuck.cs" />
+    <Compile Include="WiiChuckTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Microsoft.SPOT.Hardware" />
