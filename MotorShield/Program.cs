@@ -5,85 +5,267 @@ using System.Threading;
 using Microsoft.SPOT;
 using Microsoft.SPOT.Hardware;
 using NetduinoSerbRemote;
-using Robot.Drivers.Adafruit;
-using SecretLabs.NETMF.Hardware;
 using SecretLabs.NETMF.Hardware.NetduinoPlus;
 
 namespace MotorShield
 {
     public class Program
     {
-        //private static Mshield _myMotors;
-        //private static UltraSonicSensor _sensor;
-        ////private static Timer _timer;
-        //private static ServoController _servo1;
 
-        //private static int _leftMotorSpeed;
-        //private static int _rightMotorSpeed;
-
-        //private static Thread _sonicThread;
-        //private static Thread _servoThread;
-
-        private static PWM _speaker;
-        private static bool _playSound;
-        private static ServoController _servo1;
-        //private static Thread _speakerThread;
+        private static bool _cbuttonPressed;
+        private static bool _zbuttonPressed;
+        private static OutputPort _redLed;
+        private static OutputPort _greenLed;
 
         public static void Main()
         {
             var wiiChuck = new WiiChuck(true);
             var debugMode = Debugger.IsAttached;
-            
-            _speaker = new PWM(Pins.GPIO_PIN_D9);
+
+            _redLed = new OutputPort(Pins.GPIO_PIN_D13, false);
+            _greenLed = new OutputPort(Pins.GPIO_PIN_A0, false);
+
+            //_speaker = new PWM(Pins.GPIO_PIN_D9);
 
             //_speakerThread = new Thread(PlaySound);
             //_speakerThread.Start();
-            _servo1 = new ServoController(Mshield.Servo1, 600, 2400, startDegree: 90);
+            //_servo1 = new ServoController(Mshield.Servo1, 600, 2400, startDegree: 90);
+            _robot = new TankRobot();
 
-            using (var robot = new TankRobot())
+
+            while (!debugMode || Debugger.IsAttached)
             {
-
-                while (!debugMode || Debugger.IsAttached)
+                // try to read the data from nunchucku
+                if (wiiChuck.GetData())
                 {
-                    // try to read the data from nunchucku
-                    if (wiiChuck.GetData())
-                    {
 
-                        if (wiiChuck.ZButtonDown && !_playSound)
-                        {
-                            _speaker.SetPulse(1654, 1654 / 2);
-                        }
-                        else if (!wiiChuck.ZButtonDown && _playSound)
-                        {
-                            _speaker.SetDutyCycle(0);
-                        }
-                        _playSound = wiiChuck.ZButtonDown;
+                    CheckButtons(wiiChuck.CButtonDown, wiiChuck.ZButtonDown);
 
-                        SetMotorSpeed(robot, wiiChuck);
+                    if (!PlayingBack)
+                        SetMotorSpeed(_robot, wiiChuck);
 
-                        var degrees = ((int) (90+(-90*wiiChuck.AccelerationXGs))/2)*2;
+                    //var degrees = ((int) (90+(-90*wiiChuck.AccelerationXGs))/2)*2;
 
-                        if (degrees < 0)
-                            degrees = 0;
-                        else if (degrees > 180)
-                            degrees = 180;
+                    //if (degrees < 0)
+                    //    degrees = 0;
+                    //else if (degrees > 180)
+                    //    degrees = 180;
 
-                        _servo1.Rotate(degrees);
-                        //Debug.Print("AccelX = " + wiiChuck.AccelerationXGs + "   AccelY=" + wiiChuck.AccelerationYGs);
-                    }
+                    //_servo1.Rotate(degrees);
+                    //Debug.Print("AccelX = " + wiiChuck.AccelerationXGs + "   AccelY=" + wiiChuck.AccelerationYGs);
                 }
+            }
+            
+            wiiChuck.Dispose();
+
+            _robot.Dispose();
+
+            //_speaker.Dispose();
+            //_speaker = null;
+
+            //_servo1.Dispose();
+
+            _redLed.Dispose();
+            _greenLed.Dispose();
+
+        }
+
+        private static void CheckButtons(bool cButtonDown, bool zButtonDown)
+        {
+            if (cButtonDown)
+            {
+                _cbuttonPressed = true;
+                //_speaker.SetPulse(1654, 1654 / 2);
+            }
+            else if (_cbuttonPressed)
+            {
+                _cbuttonPressed = false;
+
+                if (Recording)
+                    StopRecording();
+                else
+                    StartRecording();
+            }
+
+            if (zButtonDown)
+            {
+                _zbuttonPressed = true;
+                //_speaker.SetPulse(1654, 1654 / 2);
+            }
+            else if (_zbuttonPressed)
+            {
+                _zbuttonPressed = false;
+
+                if (PlayingBack)
+                    StopPlayingBack();
+                else
+                    StartPlayingBack();
+            }
+                        
+
+        }
+
+
+        private static void StartRecording()
+        {
+
+            Recording = true;
+            _record.Clear();
+            var now = Utility.GetMachineTime();
+            _lastTime = TotalMilliseconds(now);
+            _lastDataPoint = new DataPoint();
+            Debug.Print("StartRecording");
+            _startedRecording = now;
+        }
+
+        public class DataPoint
+        {
+            public int LeftSpeed { get; set; }
+            public int RightSpeed { get; set; }
+            //public TimeSpan Time { get; set; }
+
+            public int Duration { get; set; }
+        }
+
+        public static int TotalMilliseconds(TimeSpan timespan)
+        {
+            var seconds = (timespan.Minutes * 60) + timespan.Seconds;
+            var mili = (seconds * 1000) + timespan.Milliseconds;
+
+            return mili;
+        }
+        private static void StopRecording()
+        {
+            Recording = false;
+            var now = Utility.GetMachineTime();
+            
+            _lastDataPoint.Duration  =  TotalMilliseconds(now) - _lastTime;
+
+            _record.Add(_lastDataPoint);
+
+            _lastDataPoint = null;
+
+            var totalDuration = TotalMilliseconds(now.Subtract(_startedRecording));
+            Debug.Print("StopRecording " + totalDuration + "ms");
+
+        }
+
+        protected static bool Recording
+        {
+            get { return _recording; }
+            set
+            {
+                _recording = value;
+                _redLed.Write(value);
+            }
+        }
+
+
+        private static void RecordData(int leftSpeed, int rightSpeed)
+        {
+            if (leftSpeed != _lastDataPoint.LeftSpeed || rightSpeed != _lastDataPoint.RightSpeed)
+            {
+                var now = Utility.GetMachineTime();
+                var nowMili = TotalMilliseconds(now);
+                var duration = nowMili - _lastTime;
+                _lastTime = nowMili;
+
+                _lastDataPoint.Duration = duration;
+
+                _record.Add(_lastDataPoint);
+
+                Debug.Print("RecordData LeftSpeed=" + _lastDataPoint.LeftSpeed + "  RightSpeed=" + _lastDataPoint.RightSpeed + "  for " + duration);
+
+                _lastDataPoint = new DataPoint() {LeftSpeed = leftSpeed, RightSpeed = rightSpeed};
+
+
+            }
+        }
+
+        private static void StartPlayingBack()
+        {
+            PlayingBack = true;
+
+            _playbackThread = new Thread(PlayBackAsync);
+            _playbackThread.Start();
+
+        }
+
+        private static int _currentStep;
+        private static TimeSpan lastTime;
+
+        private static void PlayBackAsync()
+        {
+
+            lastTime = Utility.GetMachineTime();
+            var started = lastTime;
+
+            var expectedDuration = 0;
+            //var actualDuration = 0;
+            
+            foreach (DataPoint record in _record)
+            {
+                if (!PlayingBack)
+                    return;
+                
+                Debug.Print("Playing Back " + record.LeftSpeed + ", " + record.RightSpeed);
+                _robot.Move(record.LeftSpeed, record.RightSpeed);
+
+                var now = Utility.GetMachineTime();
+
+                var diff = now.Subtract(lastTime);
+                var diffMili = TotalMilliseconds(diff);
+
+                var sleep = record.Duration - diffMili;
+                //var actualDuration = TotalMilliseconds(now.Subtract(started));
+                //Debug.Print("Off by " + (expectedDuration-actualDuration) + "ms");
+                Thread.Sleep(sleep);
+
+                lastTime = Utility.GetMachineTime();
+                //var actual = TotalMilliseconds(now.Subtract(last));
+                //Debug.Print("expected: " + sleep + " actual: " + actual);
+                expectedDuration += record.Duration;
 
             }
 
-            _speaker.Dispose();
-            _speaker = null;
+            var totalDuration = TotalMilliseconds(Utility.GetMachineTime().Subtract(started));
 
-            _servo1.Dispose();
+            Debug.Print("Playback Finished " + totalDuration + "ms");
+            Debug.Print("Expected Time " + expectedDuration + "ms");
+            Debug.Print("Off By " + (totalDuration-expectedDuration) + "ms");
 
+            PlayingBack = false;
+        }
+
+        private static void StopPlayingBack()
+        {
+           
+            PlayingBack = false;
+            _robot.Stop();
+
+        }
+
+        protected static bool PlayingBack
+        {
+            get { return _playingBack; }
+            set
+            {
+                _playingBack = value;
+                _greenLed.Write(value);
+            }
         }
 
         private static int lastX;
         private static int lastY;
+        private static bool _recording;
+        private static bool _playingBack;
+        private static ArrayList _record = new ArrayList();
+        private static int _lastTime;
+        private static DataPoint _lastDataPoint;
+        private static TankRobot _robot;
+        private static Thread _playbackThread;
+        private static TimeSpan _startedRecording;
+
         private static void SetMotorSpeed(TankRobot robot, WiiChuck wiiChuck)
         {
 
@@ -115,8 +297,11 @@ namespace MotorShield
                 lastY = y;
             }
 
+            if (Recording)
+                RecordData(leftSpeed, rightSpeed);
+
             robot.Move(leftSpeed, rightSpeed);
-                        
+
         }
 
         //private static void PlaySound()

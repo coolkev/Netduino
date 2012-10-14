@@ -48,14 +48,14 @@ namespace MotorShield
         //private int _rightMotorSpeed;
 
         private readonly DistanceHistory _distanceHistory = new DistanceHistory();
-        private readonly InterruptPort _onOffButton;
+        //private readonly InterruptPort _onOffButton;
         private bool _doFunStuff;
         private bool _stopFunStuff;
 
         public TankRobot()
         {
-            _onOffButton = new InterruptPort(Pins.GPIO_PIN_D13, false, Port.ResistorMode.PullUp, Port.InterruptMode.InterruptEdgeHigh);
-            _onOffButton.OnInterrupt += OnOffButton;
+            //_onOffButton = new InterruptPort(Pins.GPIO_PIN_D13, false, Port.ResistorMode.PullUp, Port.InterruptMode.InterruptEdgeHigh);
+            //_onOffButton.OnInterrupt += OnOffButton;
 
             _ultrasensor = new UltraSonicSensor(Pins.GPIO_PIN_D0, Pins.GPIO_PIN_D1);
 
