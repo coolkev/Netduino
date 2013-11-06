@@ -16,6 +16,27 @@ namespace MotorShield
         private static bool _zbuttonPressed;
         private static OutputPort _redLed;
         private static OutputPort _greenLed;
+        //public static void Main()
+        //{
+
+        //    using (var a1 = new AnalogInput(Cpu.AnalogChannel.ANALOG_1))
+        //    {
+        //        var last = 0.0d;
+        //        while (Debugger.IsAttached)
+        //        {
+        //            var reading = a1.Read();
+
+        //            if (reading != last)
+        //            {
+        //                Debug.Print(reading.ToString());
+        //                last = reading;
+        //            }
+
+        //        }
+
+        //    }
+
+        //}
 
         public static void Main()
         {
@@ -24,6 +45,8 @@ namespace MotorShield
 
             _redLed = new OutputPort(Pins.GPIO_PIN_D13, false);
             _greenLed = new OutputPort(Pins.GPIO_PIN_A0, false);
+
+            _pot = new AnalogInput(Cpu.AnalogChannel.ANALOG_1);
 
             //_speaker = new PWM(Pins.GPIO_PIN_D9);
 
@@ -41,9 +64,40 @@ namespace MotorShield
 
                     CheckButtons(wiiChuck.CButtonDown, wiiChuck.ZButtonDown);
 
-                    if (!PlayingBack)
+                    if (Recording)
+                    {
+                        _iteration++;
                         SetMotorSpeed(_robot, wiiChuck);
+                 
+                    }
+                    else if (PlayingBack)
+                    {
 
+                        if (_currentPlaybackIndex >= _record.Count)
+                        {
+                            PlayingBack = false;
+                            _currentPlaybackIndex = 0;
+
+                        }
+                        else
+                        {
+                            _iteration++;
+
+                            var record = (DataPoint) _record[_currentPlaybackIndex];
+
+                            if (record.Iterations == _iteration)
+                            {
+                                _currentPlaybackIndex++;
+                                _robot.Move(record.LeftSpeed, record.RightSpeed);
+
+                            }
+                        }
+
+                    }
+                    else
+                    {
+                        SetMotorSpeed(_robot, wiiChuck);
+                    }
                     //var degrees = ((int) (90+(-90*wiiChuck.AccelerationXGs))/2)*2;
 
                     //if (degrees < 0)
@@ -68,6 +122,7 @@ namespace MotorShield
             _redLed.Dispose();
             _greenLed.Dispose();
 
+            _pot.Dispose();
         }
 
         private static void CheckButtons(bool cButtonDown, bool zButtonDown)
@@ -105,17 +160,18 @@ namespace MotorShield
 
         }
 
-
+        private static int _iteration;
         private static void StartRecording()
         {
 
             Recording = true;
             _record.Clear();
-            var now = Utility.GetMachineTime();
-            _lastTime = TotalMilliseconds(now);
+            //var now = Utility.GetMachineTime();
+            //_lastTime = now.Ticks;
             _lastDataPoint = new DataPoint();
             Debug.Print("StartRecording");
-            _startedRecording = now;
+            _startedRecording = Utility.GetMachineTime();
+            _iteration = 0;
         }
 
         public class DataPoint
@@ -124,7 +180,7 @@ namespace MotorShield
             public int RightSpeed { get; set; }
             //public TimeSpan Time { get; set; }
 
-            public int Duration { get; set; }
+            public long Iterations { get; set; }
         }
 
         public static int TotalMilliseconds(TimeSpan timespan)
@@ -138,8 +194,9 @@ namespace MotorShield
         {
             Recording = false;
             var now = Utility.GetMachineTime();
-            
-            _lastDataPoint.Duration  =  TotalMilliseconds(now) - _lastTime;
+
+            //_lastDataPoint.Ticks = now.Ticks - _lastTime;
+            _lastDataPoint.Iterations = _iteration;
 
             _record.Add(_lastDataPoint);
 
@@ -163,79 +220,132 @@ namespace MotorShield
 
         private static void RecordData(int leftSpeed, int rightSpeed)
         {
-            if (leftSpeed != _lastDataPoint.LeftSpeed || rightSpeed != _lastDataPoint.RightSpeed)
-            {
-                var now = Utility.GetMachineTime();
-                var nowMili = TotalMilliseconds(now);
-                var duration = nowMili - _lastTime;
-                _lastTime = nowMili;
+            
+            //var now = Utility.GetMachineTime().Ticks;
+            //var nowMili = TotalMilliseconds(now);
+            //var duration = now - _lastTime;
+            //_lastTime = now;
 
-                _lastDataPoint.Duration = duration;
+            _lastDataPoint.Iterations = _iteration;
 
-                _record.Add(_lastDataPoint);
+            _record.Add(_lastDataPoint);
 
-                Debug.Print("RecordData LeftSpeed=" + _lastDataPoint.LeftSpeed + "  RightSpeed=" + _lastDataPoint.RightSpeed + "  for " + duration);
+            Debug.Print("RecordData LeftSpeed=" + _lastDataPoint.LeftSpeed + "  RightSpeed=" + _lastDataPoint.RightSpeed + "  for " + _iteration + " iterations");
 
-                _lastDataPoint = new DataPoint() {LeftSpeed = leftSpeed, RightSpeed = rightSpeed};
+            _lastDataPoint = new DataPoint() {LeftSpeed = leftSpeed, RightSpeed = rightSpeed};
 
 
-            }
+            
         }
 
         private static void StartPlayingBack()
         {
             PlayingBack = true;
+            _iteration = 0;
 
-            _playbackThread = new Thread(PlayBackAsync);
-            _playbackThread.Start();
+            //var potReading = _pot.Read();
+
+            //SleepOffset = 1000 + (int) (10000*potReading);
+
+            //_playbackThread = new Thread(PlayBackAsync);
+            //_playbackThread.Start();
 
         }
 
-        private static int _currentStep;
-        private static TimeSpan lastTime;
+        
+        //private static void PlayBackAsync()
+        //{
 
-        private static void PlayBackAsync()
-        {
+        //    var lastTime = Utility.GetMachineTime().Ticks;
+        //    var started = lastTime;
 
-            lastTime = Utility.GetMachineTime();
-            var started = lastTime;
-
-            var expectedDuration = 0;
-            //var actualDuration = 0;
+        //    long expectedDuration = 0;
+        //    //var actualDuration = 0;
             
-            foreach (DataPoint record in _record)
-            {
-                if (!PlayingBack)
-                    return;
+        //    foreach (DataPoint record in _record)
+        //    {
+
+        //        var start = Utility.GetMachineTime().Ticks;
+
+        //        if (!PlayingBack)
+        //            return;
                 
-                Debug.Print("Playing Back " + record.LeftSpeed + ", " + record.RightSpeed);
-                _robot.Move(record.LeftSpeed, record.RightSpeed);
+        //        Debug.Print("Playing Back " + record.LeftSpeed + ", " + record.RightSpeed);
+        //        _robot.Move(record.LeftSpeed, record.RightSpeed);
 
-                var now = Utility.GetMachineTime();
+        //       // expectedDuration += record.Ticks;
 
-                var diff = now.Subtract(lastTime);
-                var diffMili = TotalMilliseconds(diff);
+        //        var now = Utility.GetMachineTime();
 
-                var sleep = record.Duration - diffMili;
-                //var actualDuration = TotalMilliseconds(now.Subtract(started));
-                //Debug.Print("Off by " + (expectedDuration-actualDuration) + "ms");
-                Thread.Sleep(sleep);
+        //        var diff = now.Ticks - lastTime;
 
-                lastTime = Utility.GetMachineTime();
-                //var actual = TotalMilliseconds(now.Subtract(last));
-                //Debug.Print("expected: " + sleep + " actual: " + actual);
-                expectedDuration += record.Duration;
+        //        var sleep = record.Ticks - diff;
 
-            }
+        //        SleepTicks(sleep);
+        //        lastTime = Utility.GetMachineTime().Ticks;
 
-            var totalDuration = TotalMilliseconds(Utility.GetMachineTime().Subtract(started));
+        //        //if (microSleep>0)
+        //        //    Debug.Print("microSleep=" + microSleep);
+        //        //
 
-            Debug.Print("Playback Finished " + totalDuration + "ms");
-            Debug.Print("Expected Time " + expectedDuration + "ms");
-            Debug.Print("Off By " + (totalDuration-expectedDuration) + "ms");
 
-            PlayingBack = false;
-        }
+        //    }
+
+        //    var totalDuration = Utility.GetMachineTime().Ticks-started;
+
+        //    Debug.Print("Playback Finished " + (totalDuration/TimeSpan.TicksPerMillisecond) + "ms");
+        //    Debug.Print("Expected Time " + (expectedDuration/TimeSpan.TicksPerMillisecond)  + "ms");
+        //    Debug.Print("Off By " + ((totalDuration - expectedDuration)/TimeSpan.TicksPerMillisecond)  + "ms");
+        //    Debug.Print("Total Datapoints " + _record.Count);
+
+        //    PlayingBack = false;
+        //}
+
+        //private static int SleepOffset = 5500;
+
+        //private static void SleepTicks(long sleepForTicks)
+        //{
+
+        //    long ticks = Utility.GetMachineTime().Ticks;
+
+        //    var stopAt = ticks + sleepForTicks;
+
+
+        //    var sleepMiliseconds = (int)(sleepForTicks / TimeSpan.TicksPerMillisecond);
+        //    if (sleepMiliseconds >= 10)
+        //    {
+        //        Thread.Sleep(sleepMiliseconds - 10);
+        //        //Debug.Print("SleepTicks(" + sleepForTicks + ") Slept for " + (sleepMiliseconds - 10) + "ms");
+        //    }
+
+        //    //var mid = Utility.GetMachineTime().Ticks;
+
+        //    //long diff;
+        //    var microSleep = 0;
+
+        //    while (SleepOffset < (stopAt - Utility.GetMachineTime().Ticks))
+        //        microSleep++;
+
+        //    //var now = Utility.GetMachineTime().Ticks;
+
+        //    //var ticksPerMicrosleep = (now - mid)/(float)microSleep;
+
+        //    //Debug.Print("ticksPerMicrosleep = " + ticksPerMicrosleep);
+
+        //    //    microSleep++;
+        //    //var microSleep = 0;
+
+        //    //var stopAtTicks = sleepForTicks - SleepOffset;
+
+        //    //long diff;
+
+        //    //while (stopAtTicks > (diff = (Utility.GetMachineTime().Ticks - ticks)))
+        //    //    microSleep++;
+
+
+        //    //Debug.Print("SleepTicks(" + sleepForTicks + ") diff = " + diff + "   microSleep=" + microSleep);
+
+        //}
 
         private static void StopPlayingBack()
         {
@@ -260,11 +370,13 @@ namespace MotorShield
         private static bool _recording;
         private static bool _playingBack;
         private static ArrayList _record = new ArrayList();
-        private static int _lastTime;
+       // private static long _lastTime;
         private static DataPoint _lastDataPoint;
         private static TankRobot _robot;
-        private static Thread _playbackThread;
+        //private static Thread _playbackThread;
         private static TimeSpan _startedRecording;
+        private static AnalogInput _pot;
+        private static int _currentPlaybackIndex;
 
         private static void SetMotorSpeed(TankRobot robot, WiiChuck wiiChuck)
         {
@@ -291,16 +403,19 @@ namespace MotorShield
             if (rightSpeed > 100)
                 rightSpeed = 100;
             if (x != lastX || y != lastY)
+            //if (leftSpeed != _lastDataPoint.LeftSpeed || rightSpeed != _lastDataPoint.RightSpeed)
             {
                 Debug.Print("X,Y = " + x + "," + y + " \t L,R = " + leftSpeed + "," + rightSpeed);
                 lastX = x;
                 lastY = y;
+
+
+                robot.Move(leftSpeed, rightSpeed);
+
+                if (Recording)
+                    RecordData(leftSpeed, rightSpeed);
+
             }
-
-            if (Recording)
-                RecordData(leftSpeed, rightSpeed);
-
-            robot.Move(leftSpeed, rightSpeed);
 
         }
 

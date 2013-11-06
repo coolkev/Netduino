@@ -38,6 +38,7 @@
     <Compile Include="MotorShield.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Program.cs" />
+    <Compile Include="Stopwatch.cs" />
     <Compile Include="TankRobot.cs" />
     <Compile Include="ServoController.cs" />
     <Compile Include="UltraSonicSensor.cs" />
